@@ -2,7 +2,7 @@
 'RCET 3371
 'Fall 2025
 'Smart Home HVAC Controller Application
-'Git link:
+'Git link: https://github.com/rc-earnest/HVACSmartHomeController.git
 Option Strict On
 Option Explicit On
 Option Compare Text
