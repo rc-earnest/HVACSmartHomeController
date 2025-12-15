@@ -385,7 +385,7 @@ Public Class HVACForm
         OffRadioButton.Checked = True
         FaultToolStripStatusLabel.Text = "Fault: Safety Interlock Triggered"
         Dim data(1) As Byte
-        outputStatus = (outputStatus Or CType(&H1, Byte))
+        outputStatus = &H1
         data(0) = &H20
         data(1) = outputStatus
         Try
@@ -414,6 +414,7 @@ Public Class HVACForm
         If disable = True Then
             Return
         End If
+        coolEnable = False
         heatEnable = True
         fanEnabled = True
         Dim data(1) As Byte
@@ -453,12 +454,18 @@ Public Class HVACForm
         If fanEnabled = True Or fanOnlyMode = True Then
             TwoMinuteTimer.Enabled = True
         End If
+        If fanEnabled = False And fanOnlyMode = False Then
+            TwoMinuteTimer.Enabled = False
+        End If
     End Sub
     Sub DigitalInput4T()
         disable = False
         FaultToolStripStatusLabel.Text = "Fault:"
         If fanEnabled = True Or fanOnlyMode = True Then
             TwoMinuteTimer.Enabled = True
+        End If
+        If fanEnabled = False And fanOnlyMode = False Then
+            TwoMinuteTimer.Enabled = False
         End If
     End Sub
 
@@ -468,6 +475,7 @@ Public Class HVACForm
         End If
         coolEnable = True
         fanEnabled = True
+        heatEnable = False
         Dim data(1) As Byte
         outputStatus = (outputStatus Or CType(&H8, Byte))
         data(0) = &H20
@@ -506,9 +514,8 @@ Public Class HVACForm
             DigitalInput4()
         End If
         If heatEnable = True Then
-            coolEnable = False
             Dim data(1) As Byte
-            outputStatus = (outputStatus Or CType(&H4, Byte))
+            outputStatus = &HC
             data(0) = &H20
             data(1) = outputStatus
             Try
@@ -521,7 +528,7 @@ Public Class HVACForm
         If coolEnable = True Then
             heatEnable = False
             Dim data(1) As Byte
-            outputStatus = (outputStatus Or CType(&H2, Byte))
+            outputStatus = &HA
             data(0) = &H20
             data(1) = outputStatus
             Try
@@ -532,5 +539,14 @@ Public Class HVACForm
             End Try
         End If
         FiveSecondTimer.Enabled = False
+    End Sub
+
+    Private Sub TwoMinuteTimer_Tick(sender As Object, e As EventArgs) Handles TwoMinuteTimer.Tick
+        If bitArray(4) = "1" Then
+            DigitalInput4T()
+        End If
+        If bitArray(4) = "0" Then
+            DigitalInput4()
+        End If
     End Sub
 End Class

@@ -371,7 +371,7 @@ Partial Class HVACForm
         '
         'TwoMinuteTimer
         '
-        Me.TwoMinuteTimer.Interval = 120000
+        Me.TwoMinuteTimer.Interval = 600
         '
         'HVACForm
         '
