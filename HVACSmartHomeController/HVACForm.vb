@@ -35,6 +35,16 @@ Public Class HVACForm
     ' Remember last successful port so reconnect attempts target the same port
     Private lastPortName As String = String.Empty
 
+    Private lowSetpoint As Decimal = 50D
+    Private highSetpoint As Decimal = 90D
+    Private Const MinSetpoint As Decimal = 50D
+    Private Const MaxSetpoint As Decimal = 90D
+    Private Const SetpointStep As Decimal = 0.5D
+
+    ' Fault logging lock
+    Private ReadOnly faultLogLock As New Object()
+    Private fanOff As Boolean = False
+
     Sub Connect()
         ' Get available ports
         ports = ComPort.GetPortNames()
@@ -127,6 +137,7 @@ Public Class HVACForm
                     ComsStatusToolStripStatusLabel.Text = $"Connected to {ComPort.PortName}"
                 End If
                 SendTimer.Enabled = True
+                TempTimer.Enabled = True
                 Return True
             End If
 
@@ -266,8 +277,25 @@ Public Class HVACForm
         HighSetpointDownButton.BackColor = Roarange
         HighSetpointUpButton.BackColor = Roarange
         ExitButton.BackColor = Roarange
-        LowSetpointRichTextBox.Text = $"{50}°F"
-        HighSetpointRichTextBox.Text = $"{90}°F"
+
+        ' Initialize setpoint displays and make them read-only in this form
+        UpdateLowSetpointDisplay()
+        UpdateHighSetpointDisplay()
+        LowSetpointRichTextBox.ReadOnly = True
+        LowSetpointRichTextBox.ShortcutsEnabled = False
+        LowSetpointRichTextBox.TabStop = False
+        HighSetpointRichTextBox.ReadOnly = True
+        HighSetpointRichTextBox.ShortcutsEnabled = False
+        HighSetpointRichTextBox.TabStop = False
+
+        ' Make temperature displays read-only as well
+        RoomTempRichTextBox.ReadOnly = True
+        RoomTempRichTextBox.ShortcutsEnabled = False
+        RoomTempRichTextBox.TabStop = False
+        MachineTempRichTextBox.ReadOnly = True
+        MachineTempRichTextBox.ShortcutsEnabled = False
+        MachineTempRichTextBox.TabStop = False
+
         AutoRadioButton.Checked = True
         OffRadioButton.Checked = True
         ComsStatusToolStripStatusLabel.Text = "Not Connected"
@@ -336,14 +364,89 @@ Public Class HVACForm
         Catch ex As Exception
             ' Ignore exceptions from input handling
         End Try
-        Dim data(1) As Byte
-        data(0) = &H53
-        data(1) = &H30
+
+        ' Auto-shutdown checks moved here:
+        Try
+            Dim roomText As String = RoomTempRichTextBox.Text.Replace("°F", "").Trim()
+            Dim machineText As String = MachineTempRichTextBox.Text.Replace("°F", "").Trim()
+            Dim roomVal As Decimal
+            Dim machineVal As Decimal
+
+            If Decimal.TryParse(roomText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, roomVal) _
+               AndAlso Decimal.TryParse(machineText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, machineVal) Then
+
+                If heatEnable Then
+                    Dim shutdownThreshold As Decimal = highSetpoint + 2D
+                    If machineVal >= shutdownThreshold Then
+                        ' turn heating off but keep fan on for 5 seconds
+                        heatEnable = False
+
+                        ' Ensure fan bit stays set while heat is off
+                        fanEnabled = True
+                        outputStatus = CByte(outputStatus Or CType(&H8, Byte)) ' set fan bit
+                        outputStatus = CByte(outputStatus And CType(&HFB, Byte)) ' clear heat bit
+                        Dim data(1) As Byte
+                        data(0) = &H20
+                        data(1) = outputStatus
+                        Try
+                            ComPort.Write(data, 0, 2)
+                        Catch ex As Exception
+                            SendTimer.Enabled = False
+                            OnPortDisconnected("Error sending data: " & ex.Message)
+                        End Try
+
+                        ' start 5 second timer to turn fan off later
+                        FiveSecondTimer.Enabled = True
+
+                        Dim msg As String = $"Auto: Heating turned off (machine {machineVal:F1}°F >= high setpoint +2 ({shutdownThreshold:F1}°F)); fan on 5s"
+                        FaultToolStripStatusLabel.Text = msg
+                        LogFault(msg)
+                        fanOff = True
+                    End If
+                End If
+
+                If coolEnable Then
+                    Dim shutdownThreshold As Decimal = lowSetpoint - 2D
+                    If machineVal <= shutdownThreshold Then
+                        ' turn cooling off but keep fan on for 5 seconds
+                        coolEnable = False
+
+                        ' Ensure fan bit stays set while cool is off
+                        fanEnabled = True
+                        outputStatus = CByte(outputStatus Or CType(&H8, Byte)) ' set fan bit
+                        outputStatus = CByte(outputStatus And CType(&HFD, Byte)) ' clear cool bit
+                        Dim data(1) As Byte
+                        data(0) = &H20
+                        data(1) = outputStatus
+                        Try
+                            ComPort.Write(data, 0, 2)
+                        Catch ex As Exception
+                            SendTimer.Enabled = False
+                            OnPortDisconnected("Error sending data: " & ex.Message)
+                        End Try
+
+                        ' start 5 second timer to turn fan off later
+                        FiveSecondTimer.Enabled = True
+
+                        Dim msg As String = $"Auto: Cooling turned off (machine {machineVal:F1}°F <= low setpoint -2 ({shutdownThreshold:F1}°F)); fan on 5s"
+                        FaultToolStripStatusLabel.Text = msg
+                        LogFault(msg)
+                        fanOff = True
+                    End If
+                End If
+            End If
+        Catch
+            ' keep SendTimer stable
+        End Try
+
+        Dim dataSend(1) As Byte
+        dataSend(0) = &H53
+        dataSend(1) = &H30
         If ComPort.IsOpen Then
             Try
                 'ComPort.DiscardInBuffer()
-                ComPort.Write(data, 0, 1)
-                ComPort.Write(data, 1, 1)
+                ComPort.Write(dataSend, 0, 1)
+                ComPort.Write(dataSend, 1, 1)
             Catch ex As Exception
                 SendTimer.Enabled = False
                 OnPortDisconnected("Error sending data: " & ex.Message)
@@ -384,6 +487,7 @@ Public Class HVACForm
         disable = True
         OffRadioButton.Checked = True
         FaultToolStripStatusLabel.Text = "Fault: Safety Interlock Triggered"
+        LogFault("Fault: Safety Interlock Triggered")
         Dim data(1) As Byte
         outputStatus = &H1
         data(0) = &H20
@@ -451,6 +555,7 @@ Public Class HVACForm
     Sub DigitalInput4()
         disable = True
         FaultToolStripStatusLabel.Text = "Fault: Pressure Sensor"
+        LogFault("Fault: Pressure Sensor")
         If fanEnabled = True Or fanOnlyMode = True Then
             TwoMinuteTimer.Enabled = True
         End If
@@ -507,38 +612,68 @@ Public Class HVACForm
     End Function
 
     Private Sub FiveSecondTimer_Tick(sender As Object, e As EventArgs) Handles FiveSecondTimer.Tick
-        If bitArray(4) = "1" Then
-            DigitalInput4T()
-        End If
-        If bitArray(4) = "0" Then
-            DigitalInput4()
-        End If
-        If heatEnable = True Then
-            Dim data(1) As Byte
-            outputStatus = &HC
-            data(0) = &H20
-            data(1) = outputStatus
-            Try
-                ComPort.Write(data, 0, 2)
-            Catch ex As Exception
-                SendTimer.Enabled = False
-                OnPortDisconnected("Error sending data: " & ex.Message)
-            End Try
-        End If
-        If coolEnable = True Then
-            heatEnable = False
-            Dim data(1) As Byte
-            outputStatus = &HA
-            data(0) = &H20
-            data(1) = outputStatus
-            Try
-                ComPort.Write(data, 0, 2)
-            Catch ex As Exception
-                SendTimer.Enabled = False
-                OnPortDisconnected("Error sending data: " & ex.Message)
-            End Try
-        End If
-        FiveSecondTimer.Enabled = False
+        Try
+            ' Existing behavior: process inputs if present
+            If bitArray IsNot Nothing Then
+                If bitArray(4) = "1" Then
+                    DigitalInput4T()
+                End If
+                If bitArray(4) = "0" Then
+                    DigitalInput4()
+                End If
+            End If
+
+            ' If heating still on, send heat output
+            If heatEnable = True Then
+                Dim data(1) As Byte
+                outputStatus = &HC
+                data(0) = &H20
+                data(1) = outputStatus
+                Try
+                    ComPort.Write(data, 0, 2)
+                Catch ex As Exception
+                    SendTimer.Enabled = False
+                    OnPortDisconnected("Error sending data: " & ex.Message)
+                End Try
+            End If
+
+            ' If cooling still on, send cool output
+            If coolEnable = True Then
+                heatEnable = False
+                Dim data(1) As Byte
+                outputStatus = &HA
+                data(0) = &H20
+                data(1) = outputStatus
+                Try
+                    ComPort.Write(data, 0, 2)
+                Catch ex As Exception
+                    SendTimer.Enabled = False
+                    OnPortDisconnected("Error sending data: " & ex.Message)
+                End Try
+            End If
+
+            ' If we're in the "fan on for 5 seconds" phase, clear the fan bit now
+            If fanOff Then
+                fanOff = False
+                fanEnabled = False
+                ' clear fan bit (bit 3 / 0x08)
+                outputStatus = CByte(outputStatus And CType(&HF7, Byte)) ' 0xF7 clears bit3
+                Dim data(1) As Byte
+                data(0) = &H20
+                data(1) = outputStatus
+                Try
+                    ComPort.Write(data, 0, 2)
+                Catch ex As Exception
+                    SendTimer.Enabled = False
+                    OnPortDisconnected("Error sending data: " & ex.Message)
+                End Try
+                LogFault("Auto: Fan turned off after 5s")
+            End If
+        Catch
+            ' Keep timer stable
+        Finally
+            FiveSecondTimer.Enabled = False
+        End Try
     End Sub
 
     Private Sub TwoMinuteTimer_Tick(sender As Object, e As EventArgs) Handles TwoMinuteTimer.Tick
@@ -548,5 +683,168 @@ Public Class HVACForm
         If bitArray(4) = "0" Then
             DigitalInput4()
         End If
+    End Sub
+
+    Private Sub TempTimer_Tick(sender As Object, e As EventArgs) Handles TempTimer.Tick
+        Try
+            ' Parse numeric values from the UI (format: "000.00°F")
+            Dim roomText As String = RoomTempRichTextBox.Text.Replace("°F", "").Trim()
+            Dim machineText As String = MachineTempRichTextBox.Text.Replace("°F", "").Trim()
+            Dim roomVal As Decimal
+            Dim machineVal As Decimal
+
+            If Decimal.TryParse(roomText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, roomVal) _
+               AndAlso Decimal.TryParse(machineText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, machineVal) Then
+
+                ' When heating is active, machine should be warmer than room
+                If heatEnable AndAlso Not disable Then
+                    If machineVal <= roomVal Then
+                        Dim msg As String = "Fault: Machine not warmer than room while heating"
+                        FaultToolStripStatusLabel.Text = msg
+                        LogFault(msg)
+                    Else
+                        ' clear this specific fault if condition corrected
+                        If FaultToolStripStatusLabel.Text.StartsWith("Fault: Machine not warmer") Then
+                            FaultToolStripStatusLabel.Text = "Fault:"
+                        End If
+                    End If
+                End If
+
+                ' When cooling is active, machine should be cooler than room
+                If coolEnable AndAlso Not disable Then
+                    If machineVal >= roomVal Then
+                        Dim msg As String = "Fault: Machine not cooler than room while cooling"
+                        FaultToolStripStatusLabel.Text = msg
+                        LogFault(msg)
+                    Else
+                        If FaultToolStripStatusLabel.Text.StartsWith("Fault: Machine not cooler") Then
+                            FaultToolStripStatusLabel.Text = "Fault:"
+                        End If
+                    End If
+                End If
+            End If
+        Catch
+            ' Swallow any parse/runtime errors to keep timer stable
+        End Try
+    End Sub
+
+    Private Sub UpdateLowSetpointDisplay()
+        LowSetpointRichTextBox.Text = lowSetpoint.ToString("F1") & "°F"
+    End Sub
+
+    Private Sub UpdateHighSetpointDisplay()
+        HighSetpointRichTextBox.Text = highSetpoint.ToString("F1") & "°F"
+    End Sub
+
+    ' Low setpoint increase / decrease handlers
+    Private Sub LowSetpointUpButton_Click(sender As Object, e As EventArgs) Handles LowSetpointUpButton.Click
+        If lowSetpoint + SetpointStep <= MaxSetpoint Then
+            lowSetpoint += SetpointStep
+            UpdateLowSetpointDisplay()
+        End If
+    End Sub
+
+    Private Sub LowSetpointDownButton_Click(sender As Object, e As EventArgs) Handles LowSetpointDownButton.Click
+        If lowSetpoint - SetpointStep >= MinSetpoint Then
+            lowSetpoint -= SetpointStep
+            UpdateLowSetpointDisplay()
+        End If
+    End Sub
+
+    ' High setpoint increase / decrease handlers
+    Private Sub HighSetpointUpButton_Click(sender As Object, e As EventArgs) Handles HighSetpointUpButton.Click
+        If highSetpoint + SetpointStep <= MaxSetpoint Then
+            highSetpoint += SetpointStep
+            UpdateHighSetpointDisplay()
+        End If
+    End Sub
+
+    Private Sub HighSetpointDownButton_Click(sender As Object, e As EventArgs) Handles HighSetpointDownButton.Click
+        If highSetpoint - SetpointStep >= MinSetpoint Then
+            highSetpoint -= SetpointStep
+            UpdateHighSetpointDisplay()
+        End If
+    End Sub
+
+    ' Allow the user to type a setpoint by double-clicking the setpoint display.
+    ' Prompts, validates range (50.0-90.0) and 0.5°F increments, updates the setpoint and display.
+
+    Private Sub LowSetpointRichTextBox_DoubleClick(sender As Object, e As EventArgs) Handles LowSetpointRichTextBox.DoubleClick
+        Dim input As String = Microsoft.VisualBasic.Interaction.InputBox($"Enter low setpoint ({MinSetpoint:F1} - {MaxSetpoint:F1}) in °F (0.5° increments):", "Low Setpoint", lowSetpoint.ToString("F1"))
+        If String.IsNullOrWhiteSpace(input) Then
+            Return ' user cancelled
+        End If
+
+        Dim value As Decimal
+        If Not Decimal.TryParse(input.Trim(), value) Then
+            MessageBox.Show("Invalid number format. Use a decimal value like 65 or 65.5.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        If value < MinSetpoint OrElse value > MaxSetpoint Then
+            MessageBox.Show($"Setpoint must be between {MinSetpoint:F1}°F and {MaxSetpoint:F1}°F.", "Out of Range", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        ' Ensure value is a multiple of 0.5
+        Dim doubled As Decimal = value * 2D
+        Dim nearest As Integer = CInt(Math.Round(CDbl(doubled)))
+        If Math.Abs(CDbl(doubled - CDec(nearest))) > 0.0001 Then
+            MessageBox.Show("Setpoint must be in 0.5°F increments (e.g. 72.0, 72.5).", "Invalid Increment", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        ' Normalize to nearest 0.5 and assign
+        lowSetpoint = CDec(nearest) / 2D
+        UpdateLowSetpointDisplay()
+    End Sub
+
+    Private Sub HighSetpointRichTextBox_DoubleClick(sender As Object, e As EventArgs) Handles HighSetpointRichTextBox.DoubleClick
+        Dim input As String = Microsoft.VisualBasic.Interaction.InputBox($"Enter high setpoint ({MinSetpoint:F1} - {MaxSetpoint:F1}) in °F (0.5° increments):", "High Setpoint", highSetpoint.ToString("F1"))
+        If String.IsNullOrWhiteSpace(input) Then
+            Return ' user cancelled
+        End If
+
+        Dim value As Decimal
+        If Not Decimal.TryParse(input.Trim(), value) Then
+            MessageBox.Show("Invalid number format. Use a decimal value like 75 or 75.5.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        If value < MinSetpoint OrElse value > MaxSetpoint Then
+            MessageBox.Show($"Setpoint must be between {MinSetpoint:F1}°F and {MaxSetpoint:F1}°F.", "Out of Range", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        ' Ensure value is a multiple of 0.5
+        Dim doubled As Decimal = value * 2D
+        Dim nearest As Integer = CInt(Math.Round(CDbl(doubled)))
+        If Math.Abs(CDbl(doubled - CDec(nearest))) > 0.0001 Then
+            MessageBox.Show("Setpoint must be in 0.5°F increments (e.g. 72.0, 72.5).", "Invalid Increment", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        ' Normalize to nearest 0.5 and assign
+        highSetpoint = CDec(nearest) / 2D
+        UpdateHighSetpointDisplay()
+    End Sub
+
+    ' Logs fault messages to a file named HVACSystem-YYmmDD.log two directory levels up from the application's folder.
+    Private Sub LogFault(detail As String)
+        Try
+            Dim fileName As String = $"HVACSystem-{DateTime.Now:yyMMdd}.log"
+            Dim baseDir As String = IO.Path.GetFullPath(IO.Path.Combine(Application.StartupPath, "..", "..", ".."))
+            If Not IO.Directory.Exists(baseDir) Then
+                IO.Directory.CreateDirectory(baseDir)
+            End If
+            Dim path As String = IO.Path.Combine(baseDir, fileName)
+            SyncLock faultLogLock
+                Using sw As New IO.StreamWriter(path, True)
+                    sw.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {detail}")
+                End Using
+            End SyncLock
+        Catch
+            ' avoid throwing from logging
+        End Try
     End Sub
 End Class

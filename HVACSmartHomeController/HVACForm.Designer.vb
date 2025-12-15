@@ -126,6 +126,7 @@ Partial Class HVACForm
         Me.MachineTempRichTextBox.Size = New System.Drawing.Size(151, 44)
         Me.MachineTempRichTextBox.TabIndex = 17
         Me.MachineTempRichTextBox.Text = ""
+        Me.MachineTempRichTextBox.WordWrap = False
         '
         'RoomTempRichTextBox
         '
@@ -135,6 +136,7 @@ Partial Class HVACForm
         Me.RoomTempRichTextBox.Size = New System.Drawing.Size(151, 44)
         Me.RoomTempRichTextBox.TabIndex = 18
         Me.RoomTempRichTextBox.Text = ""
+        Me.RoomTempRichTextBox.WordWrap = False
         '
         'HighSetpointLabel
         '
@@ -176,6 +178,7 @@ Partial Class HVACForm
         Me.LowSetpointRichTextBox.Size = New System.Drawing.Size(100, 30)
         Me.LowSetpointRichTextBox.TabIndex = 22
         Me.LowSetpointRichTextBox.Text = ""
+        Me.LowSetpointRichTextBox.WordWrap = False
         '
         'HighSetpointUpButton
         '
