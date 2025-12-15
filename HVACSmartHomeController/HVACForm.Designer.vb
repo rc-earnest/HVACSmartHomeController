@@ -360,7 +360,6 @@ Partial Class HVACForm
         '
         'SendTimer
         '
-        Me.SendTimer.Interval = 10
         '
         'TempTimer
         '

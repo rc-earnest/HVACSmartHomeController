@@ -19,6 +19,7 @@ Public Class HVACForm
     Public heatEnable As Boolean = False
     Public coolEnable As Boolean = False
     Public fanEnabled As Boolean = False
+    Public fanOnlyMode As Boolean = False
     ' ISU Color Palette
     Public GrowlGreyLight As Color = Color.FromArgb(230, 231, 232)
     Public GrowlGreyMed As Color = Color.FromArgb(167, 167, 167)
@@ -89,8 +90,8 @@ Public Class HVACForm
             ComPort.Parity = Parity.None
             ComPort.StopBits = StopBits.One
             ComPort.DataBits = 8
-            ComPort.ReadTimeout = 2000
-            ComPort.WriteTimeout = 2000
+            ComPort.ReadTimeout = 500
+            ComPort.WriteTimeout = 500
 
             ComPort.Open()
             ComPort.DiscardInBuffer()
@@ -239,23 +240,23 @@ Public Class HVACForm
         End Try
     End Sub
 
-    '' Serial port event handlers to detect errors / disconnection
-    'Private Sub ComPort_ErrorReceived(sender As Object, e As SerialErrorReceivedEventArgs)
-    '    Try
-    '        OnPortDisconnected($"Serial error: {e.EventType}")
-    '    Catch
-    '    End Try
-    'End Sub
+    ' Serial port event handlers to detect errors / disconnection
+    Private Sub ComPort_ErrorReceived(sender As Object, e As SerialErrorReceivedEventArgs)
+        Try
+            OnPortDisconnected($"Serial error: {e.EventType}")
+        Catch
+        End Try
+    End Sub
 
-    'Private Sub ComPort_PinChanged(sender As Object, e As SerialPinChangedEventArgs)
-    '    Try
-    '        ' If a pin state changed and the port is no longer available, treat as disconnected
-    '        If Not ComPort.IsOpen Then
-    '            OnPortDisconnected($"Pin change: {e.EventType}")
-    '        End If
-    '    Catch
-    '    End Try
-    'End Sub
+    Private Sub ComPort_PinChanged(sender As Object, e As SerialPinChangedEventArgs)
+        Try
+            ' If a pin state changed and the port is no longer available, treat as disconnected
+            If Not ComPort.IsOpen Then
+                OnPortDisconnected($"Pin change: {e.EventType}")
+            End If
+        Catch
+        End Try
+    End Sub
 
     Private Sub HVACForm_Load(sender As Object, e As EventArgs) Handles Me.Load
         Me.BackColor = GrowlGrey
@@ -272,11 +273,11 @@ Public Class HVACForm
         ComsStatusToolStripStatusLabel.Text = "Not Connected"
 
         ' Hook serial port events and prepare reconnect timer
-        'Try
-        '    AddHandler ComPort.ErrorReceived, AddressOf ComPort_ErrorReceived
-        '    AddHandler ComPort.PinChanged, AddressOf ComPort_PinChanged
-        'Catch
-        'End Try
+        Try
+            AddHandler ComPort.ErrorReceived, AddressOf ComPort_ErrorReceived
+            AddHandler ComPort.PinChanged, AddressOf ComPort_PinChanged
+        Catch
+        End Try
 
         reconnectTimer = New System.Windows.Forms.Timer()
         reconnectTimer.Interval = 10000
@@ -291,6 +292,8 @@ Public Class HVACForm
     Private Sub ExitButton_Click(sender As Object, e As EventArgs) Handles ExitButton.Click, ExitToolStripMenuItem.Click
         ' Stop timer and close port cleanly on exit
         Try
+            SendTimer.Enabled = False
+            FiveSecondTimer.Enabled = False
             If reconnectTimer IsNot Nothing AndAlso reconnectTimer.Enabled Then
                 reconnectTimer.Stop()
             End If
@@ -303,17 +306,49 @@ Public Class HVACForm
         Me.Close()
     End Sub
     Private Sub SendTimer_Tick(sender As Object, e As EventArgs) Handles SendTimer.Tick
+        Try
+            If bitArray IsNot Nothing Then
+                Dim anyone As Boolean = False
+                For i As Integer = 0 To bitArray.Length - 1
+                    If bitArray(i) = "1" Then
+                        anyone = True
+                        Exit For
+                    End If
+                Next
+                If anyone = True Then
+                    If bitArray(7) = "0" Then
+                        DigitalInput1()
+                    End If
+                    If bitArray(7) = "1" Then
+                        DigitalInput1T()
+                    End If
+                    If bitArray(6) = "0" Then
+                        DigitalInput2()
+                    End If
+                    If bitArray(5) = "0" Then
+                        DigitalInput3()
+                    End If
+                    If bitArray(3) = "0" Then
+                        DigitalInput5()
+                    End If
+                End If
+            End If
+        Catch ex As Exception
+            ' Ignore exceptions from input handling
+        End Try
         Dim data(1) As Byte
         data(0) = &H53
         data(1) = &H30
-        Try
-            ComPort.DiscardInBuffer()
-            ComPort.Write(data, 0, 1)
-            ComPort.Write(data, 1, 1)
-        Catch ex As Exception
-            SendTimer.Enabled = False
-            OnPortDisconnected("Error sending data: " & ex.Message)
-        End Try
+        If ComPort.IsOpen Then
+            Try
+                'ComPort.DiscardInBuffer()
+                ComPort.Write(data, 0, 1)
+                ComPort.Write(data, 1, 1)
+            Catch ex As Exception
+                SendTimer.Enabled = False
+                OnPortDisconnected("Error sending data: " & ex.Message)
+            End Try
+        End If
     End Sub
 
     Private Sub ComPort_DataReceived(sender As Object, e As SerialDataReceivedEventArgs) Handles ComPort.DataReceived
@@ -342,28 +377,6 @@ Public Class HVACForm
                 RoomTempRichTextBox.Text = CDec(($"{((60 / 1023) * (roomTemp)) + 40}")).ToString("000.00°F")
                 MachineTempRichTextBox.Text = CDec(($"{((60 / 1023) * (machineTemp)) + 40}")).ToString("000.00°F")
             End If
-            Try
-                If bitArray IsNot Nothing Then
-
-                    If bitArray(7) = "0" Then
-                        DigitalInput1()
-                    End If
-                    If bitArray(7) = "1" Then
-                        DigitalInput1T()
-                    End If
-                    If bitArray(6) = "1" Then
-                        'DigitalInput2()
-                    End If
-                    If bitArray(5) = "1" Then
-                        ' DigitalInput3()
-                    End If
-                    If bitArray(3) = "1" Then
-                        ' DigitalInput5()
-                    End If
-                End If
-            Catch ex As Exception
-                ' Ignore exceptions from input handling
-            End Try
         End If
     End Sub
 
@@ -372,7 +385,7 @@ Public Class HVACForm
         OffRadioButton.Checked = True
         FaultToolStripStatusLabel.Text = "Fault: Safety Interlock Triggered"
         Dim data(1) As Byte
-        outputStatus = (outputStatus Or CType(&H80, Byte))
+        outputStatus = (outputStatus Or CType(&H1, Byte))
         data(0) = &H20
         data(1) = outputStatus
         Try
@@ -386,7 +399,7 @@ Public Class HVACForm
         disable = False
         FaultToolStripStatusLabel.Text = "Fault:"
         Dim data(1) As Byte
-        outputStatus = (outputStatus And CType(&H7F, Byte))
+        outputStatus = (outputStatus And CType(&HFE, Byte))
         data(0) = &H20
         data(1) = outputStatus
         Try
@@ -398,12 +411,13 @@ Public Class HVACForm
     End Sub
 
     Sub DigitalInput2()
-        heatEnable = True
         If disable = True Then
             Return
         End If
+        heatEnable = True
+        fanEnabled = True
         Dim data(1) As Byte
-        outputStatus = (outputStatus Or CType(&H10, Byte))
+        outputStatus = (outputStatus Or CType(&H8, Byte))
         data(0) = &H20
         data(1) = outputStatus
         Try
@@ -419,8 +433,10 @@ Public Class HVACForm
         If disable = True Then
             Return
         End If
+        fanOnlyMode = True
+        fanEnabled = True
         Dim data(1) As Byte
-        outputStatus = (outputStatus Or CType(&H10, Byte))
+        outputStatus = (outputStatus Or CType(&H8, Byte))
         data(0) = &H20
         data(1) = outputStatus
         Try
@@ -434,19 +450,26 @@ Public Class HVACForm
     Sub DigitalInput4()
         disable = True
         FaultToolStripStatusLabel.Text = "Fault: Pressure Sensor"
+        If fanEnabled = True Or fanOnlyMode = True Then
+            TwoMinuteTimer.Enabled = True
+        End If
     End Sub
     Sub DigitalInput4T()
         disable = False
         FaultToolStripStatusLabel.Text = "Fault:"
+        If fanEnabled = True Or fanOnlyMode = True Then
+            TwoMinuteTimer.Enabled = True
+        End If
     End Sub
 
     Sub DigitalInput5()
-        coolEnable = True
         If disable = True Then
             Return
         End If
+        coolEnable = True
+        fanEnabled = True
         Dim data(1) As Byte
-        outputStatus = (outputStatus Or CType(&H10, Byte))
+        outputStatus = (outputStatus Or CType(&H8, Byte))
         data(0) = &H20
         data(1) = outputStatus
         Try
@@ -476,9 +499,6 @@ Public Class HVACForm
     End Function
 
     Private Sub FiveSecondTimer_Tick(sender As Object, e As EventArgs) Handles FiveSecondTimer.Tick
-        If disable = True Then
-            Return
-        End If
         If bitArray(4) = "1" Then
             DigitalInput4T()
         End If
@@ -488,7 +508,7 @@ Public Class HVACForm
         If heatEnable = True Then
             coolEnable = False
             Dim data(1) As Byte
-            outputStatus = (outputStatus Or CType(&H40, Byte))
+            outputStatus = (outputStatus Or CType(&H4, Byte))
             data(0) = &H20
             data(1) = outputStatus
             Try
@@ -501,7 +521,7 @@ Public Class HVACForm
         If coolEnable = True Then
             heatEnable = False
             Dim data(1) As Byte
-            outputStatus = (outputStatus Or CType(&H20, Byte))
+            outputStatus = (outputStatus Or CType(&H2, Byte))
             data(0) = &H20
             data(1) = outputStatus
             Try
@@ -511,5 +531,6 @@ Public Class HVACForm
                 OnPortDisconnected("Error sending data: " & ex.Message)
             End Try
         End If
+        FiveSecondTimer.Enabled = False
     End Sub
 End Class
