@@ -20,6 +20,7 @@ Public Class HVACForm
     Public coolEnable As Boolean = False
     Public fanEnabled As Boolean = False
     Public fanOnlyMode As Boolean = False
+    Public override As Boolean = False
     ' ISU Color Palette
     Public GrowlGreyLight As Color = Color.FromArgb(230, 231, 232)
     Public GrowlGreyMed As Color = Color.FromArgb(167, 167, 167)
@@ -169,6 +170,9 @@ Public Class HVACForm
             End If
             Return
         End If
+
+        ' Log the communication loss event
+        LogFault("Communication lost with QY@ board - attempting to reconnect")
 
         isReconnecting = True
 
@@ -365,7 +369,7 @@ Public Class HVACForm
             ' Ignore exceptions from input handling
         End Try
 
-        ' Auto-shutdown checks moved here:
+        ' Auto control: enable when outside thresholds; when inside setpoint range turn everything off
         Try
             Dim roomText As String = RoomTempRichTextBox.Text.Replace("°F", "").Trim()
             Dim machineText As String = MachineTempRichTextBox.Text.Replace("°F", "").Trim()
@@ -375,63 +379,83 @@ Public Class HVACForm
             If Decimal.TryParse(roomText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, roomVal) _
                AndAlso Decimal.TryParse(machineText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, machineVal) Then
 
-                If heatEnable Then
-                    Dim shutdownThreshold As Decimal = highSetpoint + 2D
-                    If machineVal >= shutdownThreshold Then
-                        ' turn heating off but keep fan on for 5 seconds
-                        heatEnable = False
-
-                        ' Ensure fan bit stays set while heat is off
-                        fanEnabled = True
-                        outputStatus = CByte(outputStatus Or CType(&H8, Byte)) ' set fan bit
-                        outputStatus = CByte(outputStatus And CType(&HFB, Byte)) ' clear heat bit
-                        Dim data(1) As Byte
-                        data(0) = &H20
-                        data(1) = outputStatus
-                        Try
-                            ComPort.Write(data, 0, 2)
-                        Catch ex As Exception
-                            SendTimer.Enabled = False
-                            OnPortDisconnected("Error sending data: " & ex.Message)
-                        End Try
-
-                        ' start 5 second timer to turn fan off later
-                        FiveSecondTimer.Enabled = True
-
-                        Dim msg As String = $"Auto: Heating turned off (machine {machineVal:F1}°F >= high setpoint +2 ({shutdownThreshold:F1}°F)); fan on 5s"
-                        FaultToolStripStatusLabel.Text = msg
-                        LogFault(msg)
-                        fanOff = True
-                    End If
-                End If
-
-                If coolEnable Then
-                    Dim shutdownThreshold As Decimal = lowSetpoint - 2D
-                    If machineVal <= shutdownThreshold Then
-                        ' turn cooling off but keep fan on for 5 seconds
-                        coolEnable = False
-
-                        ' Ensure fan bit stays set while cool is off
-                        fanEnabled = True
-                        outputStatus = CByte(outputStatus Or CType(&H8, Byte)) ' set fan bit
-                        outputStatus = CByte(outputStatus And CType(&HFD, Byte)) ' clear cool bit
-                        Dim data(1) As Byte
-                        data(0) = &H20
-                        data(1) = outputStatus
-                        Try
-                            ComPort.Write(data, 0, 2)
-                        Catch ex As Exception
-                            SendTimer.Enabled = False
-                            OnPortDisconnected("Error sending data: " & ex.Message)
-                        End Try
-
-                        ' start 5 second timer to turn fan off later
-                        FiveSecondTimer.Enabled = True
-
-                        Dim msg As String = $"Auto: Cooling turned off (machine {machineVal:F1}°F <= low setpoint -2 ({shutdownThreshold:F1}°F)); fan on 5s"
-                        FaultToolStripStatusLabel.Text = msg
-                        LogFault(msg)
-                        fanOff = True
+                If Not disable Then
+                    ' If machine is well below low setpoint -> heat
+                    If machineVal <= (lowSetpoint - 2D) Then
+                        If Not heatEnable Then
+                            heatEnable = True
+                            coolEnable = False
+                            fanEnabled = True
+                            ' set fan bit and (device-specific) heat bits as prior code does
+                            outputStatus = CByte(outputStatus Or CType(&H8, Byte))
+                            ' (ensure any cool bit cleared)
+                            outputStatus = CByte(outputStatus And CType(&HFD, Byte))
+                            Dim dataOn(1) As Byte
+                            dataOn(0) = &H20
+                            dataOn(1) = outputStatus
+                            Try
+                                ComPort.Write(dataOn, 0, 2)
+                            Catch ex As Exception
+                                SendTimer.Enabled = False
+                                OnPortDisconnected("Error sending data: " & ex.Message)
+                            End Try
+                            Dim msgOn As String = $"Auto: Heating enabled (machine {machineVal:F1}°F <= low setpoint -2 ({lowSetpoint - 2D:F1}°F))"
+                            FaultToolStripStatusLabel.Text = msgOn
+                            LogFault(msgOn)
+                            FiveSecondTimer.Enabled = True
+                            ' keep fan running while heat active (no 5s action)
+                        End If
+                        ' If machine is well above high setpoint -> cool
+                    ElseIf machineVal >= (highSetpoint + 2D) Then
+                        If Not coolEnable Then
+                            coolEnable = True
+                            heatEnable = False
+                            fanEnabled = True
+                            ' set fan bit and (device-specific) cool bits as prior code does
+                            outputStatus = CByte(outputStatus Or CType(&H8, Byte))
+                            ' (ensure any heat bit cleared)
+                            outputStatus = CByte(outputStatus And CType(&HFB, Byte))
+                            Dim dataOn(1) As Byte
+                            dataOn(0) = &H20
+                            dataOn(1) = outputStatus
+                            Try
+                                ComPort.Write(dataOn, 0, 2)
+                            Catch ex As Exception
+                                SendTimer.Enabled = False
+                                OnPortDisconnected("Error sending data: " & ex.Message)
+                            End Try
+                            Dim msgOn As String = $"Auto: Cooling enabled (machine {machineVal:F1}°F >= high setpoint +2 ({highSetpoint + 2D:F1}°F))"
+                            FaultToolStripStatusLabel.Text = msgOn
+                            LogFault(msgOn)
+                            FiveSecondTimer.Enabled = True
+                        End If
+                    Else
+                        ' Machine is within the user-set bounds [lowSetpoint .. highSetpoint]
+                        ' If either heating or cooling is running, turn them off and leave fan on for 5 seconds
+                        If heatEnable Or coolEnable And override = False Then
+                            heatEnable = False
+                            coolEnable = False
+                            fanEnabled = True
+                            ' set fan bit, clear heat/cool bits
+                            outputStatus = CByte(outputStatus Or CType(&H8, Byte)) ' set fan
+                            outputStatus = CByte(outputStatus And CType(&HFB, Byte)) ' clear heat
+                            outputStatus = CByte(outputStatus And CType(&HFD, Byte)) ' clear cool
+                            Dim dataOff(1) As Byte
+                            dataOff(0) = &H20
+                            dataOff(1) = outputStatus
+                            Try
+                                ComPort.Write(dataOff, 0, 2)
+                            Catch ex As Exception
+                                SendTimer.Enabled = False
+                                OnPortDisconnected("Error sending data: " & ex.Message)
+                            End Try
+                            Dim msgOff As String = $"Auto: Heating/Cooling turned off (machine {machineVal:F1}°F within setpoints {lowSetpoint:F1}-{highSetpoint:F1}); fan on 5s"
+                            FaultToolStripStatusLabel.Text = msgOff
+                            LogFault(msgOff)
+                            ' trigger fan-off sequence
+                            FiveSecondTimer.Enabled = True
+                            fanOff = True
+                        End If
                     End If
                 End If
             End If
@@ -521,6 +545,7 @@ Public Class HVACForm
         coolEnable = False
         heatEnable = True
         fanEnabled = True
+        override = True
         Dim data(1) As Byte
         outputStatus = (outputStatus Or CType(&H8, Byte))
         data(0) = &H20
@@ -540,6 +565,7 @@ Public Class HVACForm
         End If
         fanOnlyMode = True
         fanEnabled = True
+        override = True
         Dim data(1) As Byte
         outputStatus = (outputStatus Or CType(&H8, Byte))
         data(0) = &H20
@@ -581,6 +607,7 @@ Public Class HVACForm
         coolEnable = True
         fanEnabled = True
         heatEnable = False
+        override = True
         Dim data(1) As Byte
         outputStatus = (outputStatus Or CType(&H8, Byte))
         data(0) = &H20
@@ -838,9 +865,10 @@ Public Class HVACForm
                 IO.Directory.CreateDirectory(baseDir)
             End If
             Dim path As String = IO.Path.Combine(baseDir, fileName)
+            Dim entry As String = $"{DateTime.Now:yyMMdd-HHmmss}: {detail}"
             SyncLock faultLogLock
                 Using sw As New IO.StreamWriter(path, True)
-                    sw.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {detail}")
+                    sw.WriteLine(entry)
                 End Using
             End SyncLock
         Catch
