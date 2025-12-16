@@ -1,9 +1,9 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class HVACForm
     Inherits System.Windows.Forms.Form
 
     'Form overrides dispose to clean up the component list.
-    <System.Diagnostics.DebuggerNonUserCode()> _
+    <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
@@ -20,7 +20,7 @@ Partial Class HVACForm
     'NOTE: The following procedure is required by the Windows Form Designer
     'It can be modified using the Windows Form Designer.  
     'Do not modify it using the code editor.
-    <System.Diagnostics.DebuggerStepThrough()> _
+    <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Me.components = New System.ComponentModel.Container()
         Me.LogoPictureBox = New System.Windows.Forms.PictureBox()
@@ -59,6 +59,7 @@ Partial Class HVACForm
         Me.TempTimer = New System.Windows.Forms.Timer(Me.components)
         Me.FiveSecondTimer = New System.Windows.Forms.Timer(Me.components)
         Me.TwoMinuteTimer = New System.Windows.Forms.Timer(Me.components)
+        Me.DateTimeLabel = New System.Windows.Forms.Label()
         CType(Me.LogoPictureBox, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.StatusStrip.SuspendLayout()
         Me.HeatCoolOffGroupBox.SuspendLayout()
@@ -103,7 +104,7 @@ Partial Class HVACForm
         '
         Me.MachineTempLabel.AutoSize = True
         Me.MachineTempLabel.Font = New System.Drawing.Font("Segoe UI", 15.75!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.MachineTempLabel.Location = New System.Drawing.Point(135, 131)
+        Me.MachineTempLabel.Location = New System.Drawing.Point(181, 131)
         Me.MachineTempLabel.Name = "MachineTempLabel"
         Me.MachineTempLabel.Size = New System.Drawing.Size(204, 37)
         Me.MachineTempLabel.TabIndex = 13
@@ -113,7 +114,7 @@ Partial Class HVACForm
         '
         Me.RoomTempLabel.AutoSize = True
         Me.RoomTempLabel.Font = New System.Drawing.Font("Segoe UI", 15.75!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.RoomTempLabel.Location = New System.Drawing.Point(449, 132)
+        Me.RoomTempLabel.Location = New System.Drawing.Point(431, 131)
         Me.RoomTempLabel.Name = "RoomTempLabel"
         Me.RoomTempLabel.Size = New System.Drawing.Size(171, 37)
         Me.RoomTempLabel.TabIndex = 14
@@ -122,7 +123,7 @@ Partial Class HVACForm
         'MachineTempRichTextBox
         '
         Me.MachineTempRichTextBox.Font = New System.Drawing.Font("Segoe UI", 15.75!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.MachineTempRichTextBox.Location = New System.Drawing.Point(136, 165)
+        Me.MachineTempRichTextBox.Location = New System.Drawing.Point(188, 171)
         Me.MachineTempRichTextBox.Name = "MachineTempRichTextBox"
         Me.MachineTempRichTextBox.Size = New System.Drawing.Size(151, 44)
         Me.MachineTempRichTextBox.TabIndex = 17
@@ -143,7 +144,7 @@ Partial Class HVACForm
         '
         Me.HighSetpointLabel.AutoSize = True
         Me.HighSetpointLabel.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.HighSetpointLabel.Location = New System.Drawing.Point(75, 319)
+        Me.HighSetpointLabel.Location = New System.Drawing.Point(189, 227)
         Me.HighSetpointLabel.Name = "HighSetpointLabel"
         Me.HighSetpointLabel.Size = New System.Drawing.Size(143, 28)
         Me.HighSetpointLabel.TabIndex = 19
@@ -153,7 +154,7 @@ Partial Class HVACForm
         '
         Me.LowSetpointLabel.AutoSize = True
         Me.LowSetpointLabel.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.LowSetpointLabel.Location = New System.Drawing.Point(438, 319)
+        Me.LowSetpointLabel.Location = New System.Drawing.Point(405, 227)
         Me.LowSetpointLabel.Name = "LowSetpointLabel"
         Me.LowSetpointLabel.Size = New System.Drawing.Size(136, 28)
         Me.LowSetpointLabel.TabIndex = 20
@@ -165,7 +166,7 @@ Partial Class HVACForm
         'HighSetpointRichTextBox
         '
         Me.HighSetpointRichTextBox.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.HighSetpointRichTextBox.Location = New System.Drawing.Point(79, 343)
+        Me.HighSetpointRichTextBox.Location = New System.Drawing.Point(220, 258)
         Me.HighSetpointRichTextBox.Name = "HighSetpointRichTextBox"
         Me.HighSetpointRichTextBox.Size = New System.Drawing.Size(100, 30)
         Me.HighSetpointRichTextBox.TabIndex = 21
@@ -174,7 +175,7 @@ Partial Class HVACForm
         'LowSetpointRichTextBox
         '
         Me.LowSetpointRichTextBox.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.LowSetpointRichTextBox.Location = New System.Drawing.Point(442, 343)
+        Me.LowSetpointRichTextBox.Location = New System.Drawing.Point(429, 258)
         Me.LowSetpointRichTextBox.Name = "LowSetpointRichTextBox"
         Me.LowSetpointRichTextBox.Size = New System.Drawing.Size(100, 30)
         Me.LowSetpointRichTextBox.TabIndex = 22
@@ -183,7 +184,7 @@ Partial Class HVACForm
         '
         'HighSetpointUpButton
         '
-        Me.HighSetpointUpButton.Location = New System.Drawing.Point(35, 379)
+        Me.HighSetpointUpButton.Location = New System.Drawing.Point(176, 294)
         Me.HighSetpointUpButton.Name = "HighSetpointUpButton"
         Me.HighSetpointUpButton.Size = New System.Drawing.Size(75, 23)
         Me.HighSetpointUpButton.TabIndex = 23
@@ -192,7 +193,7 @@ Partial Class HVACForm
         '
         'HighSetpointDownButton
         '
-        Me.HighSetpointDownButton.Location = New System.Drawing.Point(136, 379)
+        Me.HighSetpointDownButton.Location = New System.Drawing.Point(277, 294)
         Me.HighSetpointDownButton.Name = "HighSetpointDownButton"
         Me.HighSetpointDownButton.Size = New System.Drawing.Size(75, 23)
         Me.HighSetpointDownButton.TabIndex = 24
@@ -201,7 +202,7 @@ Partial Class HVACForm
         '
         'LowSetpointUpButton
         '
-        Me.LowSetpointUpButton.Location = New System.Drawing.Point(413, 379)
+        Me.LowSetpointUpButton.Location = New System.Drawing.Point(400, 294)
         Me.LowSetpointUpButton.Name = "LowSetpointUpButton"
         Me.LowSetpointUpButton.Size = New System.Drawing.Size(75, 23)
         Me.LowSetpointUpButton.TabIndex = 25
@@ -210,7 +211,7 @@ Partial Class HVACForm
         '
         'LowSetpointDownButton
         '
-        Me.LowSetpointDownButton.Location = New System.Drawing.Point(504, 379)
+        Me.LowSetpointDownButton.Location = New System.Drawing.Point(491, 294)
         Me.LowSetpointDownButton.Name = "LowSetpointDownButton"
         Me.LowSetpointDownButton.Size = New System.Drawing.Size(75, 23)
         Me.LowSetpointDownButton.TabIndex = 26
@@ -222,7 +223,7 @@ Partial Class HVACForm
         Me.HeatCoolOffGroupBox.Controls.Add(Me.OffRadioButton)
         Me.HeatCoolOffGroupBox.Controls.Add(Me.CoolRadioButton)
         Me.HeatCoolOffGroupBox.Controls.Add(Me.HeatRadioButton)
-        Me.HeatCoolOffGroupBox.Location = New System.Drawing.Point(758, 75)
+        Me.HeatCoolOffGroupBox.Location = New System.Drawing.Point(637, 134)
         Me.HeatCoolOffGroupBox.Name = "HeatCoolOffGroupBox"
         Me.HeatCoolOffGroupBox.Size = New System.Drawing.Size(89, 87)
         Me.HeatCoolOffGroupBox.TabIndex = 27
@@ -268,7 +269,7 @@ Partial Class HVACForm
         '
         Me.ModeLabel.AutoSize = True
         Me.ModeLabel.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.ModeLabel.Location = New System.Drawing.Point(760, 51)
+        Me.ModeLabel.Location = New System.Drawing.Point(650, 112)
         Me.ModeLabel.Name = "ModeLabel"
         Me.ModeLabel.Size = New System.Drawing.Size(66, 28)
         Me.ModeLabel.TabIndex = 28
@@ -278,7 +279,7 @@ Partial Class HVACForm
         '
         Me.FanLabel.AutoSize = True
         Me.FanLabel.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.FanLabel.Location = New System.Drawing.Point(760, 175)
+        Me.FanLabel.Location = New System.Drawing.Point(650, 236)
         Me.FanLabel.Name = "FanLabel"
         Me.FanLabel.Size = New System.Drawing.Size(44, 28)
         Me.FanLabel.TabIndex = 29
@@ -288,7 +289,7 @@ Partial Class HVACForm
         '
         Me.FanGroupBox.Controls.Add(Me.AutoRadioButton)
         Me.FanGroupBox.Controls.Add(Me.OnRadioButton)
-        Me.FanGroupBox.Location = New System.Drawing.Point(758, 199)
+        Me.FanGroupBox.Location = New System.Drawing.Point(637, 258)
         Me.FanGroupBox.Name = "FanGroupBox"
         Me.FanGroupBox.Size = New System.Drawing.Size(82, 72)
         Me.FanGroupBox.TabIndex = 30
@@ -341,7 +342,7 @@ Partial Class HVACForm
         '
         Me.SaveSettingsToolStripMenu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveSettingsToolStripMenuItem})
         Me.SaveSettingsToolStripMenu.Name = "SaveSettingsToolStripMenu"
-        Me.SaveSettingsToolStripMenu.Size = New System.Drawing.Size(111, 24)
+        Me.SaveSettingsToolStripMenu.Size = New System.Drawing.Size(111, 26)
         Me.SaveSettingsToolStripMenu.Text = "Save Settings"
         '
         'SaveSettingsToolStripMenuItem
@@ -354,7 +355,7 @@ Partial Class HVACForm
         '
         Me.ExitToolStripMenu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ExitToolStripMenuItem})
         Me.ExitToolStripMenu.Name = "ExitToolStripMenu"
-        Me.ExitToolStripMenu.Size = New System.Drawing.Size(47, 24)
+        Me.ExitToolStripMenu.Size = New System.Drawing.Size(47, 26)
         Me.ExitToolStripMenu.Text = "Exit"
         '
         'ExitToolStripMenuItem
@@ -378,12 +379,23 @@ Partial Class HVACForm
         '
         Me.TwoMinuteTimer.Interval = 120000
         '
+        'DateTimeLabel
+        '
+        Me.DateTimeLabel.AutoSize = True
+        Me.DateTimeLabel.Font = New System.Drawing.Font("Segoe UI", 16.2!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.DateTimeLabel.Location = New System.Drawing.Point(284, 60)
+        Me.DateTimeLabel.Name = "DateTimeLabel"
+        Me.DateTimeLabel.Size = New System.Drawing.Size(152, 38)
+        Me.DateTimeLabel.TabIndex = 2
+        Me.DateTimeLabel.Text = "Date Time"
+        '
         'HVACForm
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(8.0!, 19.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.BackColor = System.Drawing.SystemColors.Control
         Me.ClientSize = New System.Drawing.Size(933, 450)
+        Me.Controls.Add(Me.DateTimeLabel)
         Me.Controls.Add(Me.ExitButton)
         Me.Controls.Add(Me.FanGroupBox)
         Me.Controls.Add(Me.FanLabel)
@@ -408,7 +420,8 @@ Partial Class HVACForm
         Me.MainMenuStrip = Me.MenuStrip1
         Me.Margin = New System.Windows.Forms.Padding(4, 3, 4, 3)
         Me.Name = "HVACForm"
-        Me.Text = "Form1"
+        Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
+        Me.Text = "HVAC"
         CType(Me.LogoPictureBox, System.ComponentModel.ISupportInitialize).EndInit()
         Me.StatusStrip.ResumeLayout(False)
         Me.StatusStrip.PerformLayout()
@@ -459,4 +472,5 @@ Partial Class HVACForm
     Friend WithEvents TempTimer As Timer
     Friend WithEvents FiveSecondTimer As Timer
     Friend WithEvents TwoMinuteTimer As Timer
+    Friend WithEvents DateTimeLabel As Label
 End Class

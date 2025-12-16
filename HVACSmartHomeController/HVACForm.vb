@@ -341,6 +341,9 @@ Public Class HVACForm
         Me.Close()
     End Sub
     Private Sub SendTimer_Tick(sender As Object, e As EventArgs) Handles SendTimer.Tick
+        ' Keep date/time label current each tick (MM/dd/yyyy hh:mm:ss tt - en-US)
+        DateTimeLabel.Text = DateTime.Now.ToString("MM/dd/yyyy hh:mm:ss tt")
+
         Try
             If bitArray IsNot Nothing Then
                 Dim anyone As Boolean = False
