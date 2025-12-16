@@ -79,23 +79,24 @@ Partial Class HVACForm
         '
         'StatusStrip
         '
+        Me.StatusStrip.ImageScalingSize = New System.Drawing.Size(20, 20)
         Me.StatusStrip.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FaultToolStripStatusLabel, Me.ComsStatusToolStripStatusLabel})
-        Me.StatusStrip.Location = New System.Drawing.Point(0, 428)
+        Me.StatusStrip.Location = New System.Drawing.Point(0, 424)
         Me.StatusStrip.Name = "StatusStrip"
-        Me.StatusStrip.Size = New System.Drawing.Size(933, 22)
+        Me.StatusStrip.Size = New System.Drawing.Size(933, 26)
         Me.StatusStrip.TabIndex = 12
         Me.StatusStrip.Text = "StatusStrip1"
         '
         'FaultToolStripStatusLabel
         '
         Me.FaultToolStripStatusLabel.Name = "FaultToolStripStatusLabel"
-        Me.FaultToolStripStatusLabel.Size = New System.Drawing.Size(36, 17)
+        Me.FaultToolStripStatusLabel.Size = New System.Drawing.Size(43, 20)
         Me.FaultToolStripStatusLabel.Text = "Fault:"
         '
         'ComsStatusToolStripStatusLabel
         '
         Me.ComsStatusToolStripStatusLabel.Name = "ComsStatusToolStripStatusLabel"
-        Me.ComsStatusToolStripStatusLabel.Size = New System.Drawing.Size(132, 17)
+        Me.ComsStatusToolStripStatusLabel.Size = New System.Drawing.Size(161, 20)
         Me.ComsStatusToolStripStatusLabel.Text = "Communication Status:"
         '
         'MachineTempLabel
@@ -104,7 +105,7 @@ Partial Class HVACForm
         Me.MachineTempLabel.Font = New System.Drawing.Font("Segoe UI", 15.75!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.MachineTempLabel.Location = New System.Drawing.Point(135, 131)
         Me.MachineTempLabel.Name = "MachineTempLabel"
-        Me.MachineTempLabel.Size = New System.Drawing.Size(156, 30)
+        Me.MachineTempLabel.Size = New System.Drawing.Size(204, 37)
         Me.MachineTempLabel.TabIndex = 13
         Me.MachineTempLabel.Text = "Machine Temp"
         '
@@ -114,7 +115,7 @@ Partial Class HVACForm
         Me.RoomTempLabel.Font = New System.Drawing.Font("Segoe UI", 15.75!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.RoomTempLabel.Location = New System.Drawing.Point(449, 132)
         Me.RoomTempLabel.Name = "RoomTempLabel"
-        Me.RoomTempLabel.Size = New System.Drawing.Size(130, 30)
+        Me.RoomTempLabel.Size = New System.Drawing.Size(171, 37)
         Me.RoomTempLabel.TabIndex = 14
         Me.RoomTempLabel.Text = "Room Temp"
         '
@@ -144,7 +145,7 @@ Partial Class HVACForm
         Me.HighSetpointLabel.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.HighSetpointLabel.Location = New System.Drawing.Point(75, 319)
         Me.HighSetpointLabel.Name = "HighSetpointLabel"
-        Me.HighSetpointLabel.Size = New System.Drawing.Size(116, 21)
+        Me.HighSetpointLabel.Size = New System.Drawing.Size(143, 28)
         Me.HighSetpointLabel.TabIndex = 19
         Me.HighSetpointLabel.Text = "High Setpoint"
         '
@@ -154,7 +155,7 @@ Partial Class HVACForm
         Me.LowSetpointLabel.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.LowSetpointLabel.Location = New System.Drawing.Point(438, 319)
         Me.LowSetpointLabel.Name = "LowSetpointLabel"
-        Me.LowSetpointLabel.Size = New System.Drawing.Size(110, 21)
+        Me.LowSetpointLabel.Size = New System.Drawing.Size(136, 28)
         Me.LowSetpointLabel.TabIndex = 20
         Me.LowSetpointLabel.Text = "Low Setpoint"
         '
@@ -233,7 +234,7 @@ Partial Class HVACForm
         Me.OffRadioButton.Enabled = False
         Me.OffRadioButton.Location = New System.Drawing.Point(6, 64)
         Me.OffRadioButton.Name = "OffRadioButton"
-        Me.OffRadioButton.Size = New System.Drawing.Size(41, 17)
+        Me.OffRadioButton.Size = New System.Drawing.Size(51, 23)
         Me.OffRadioButton.TabIndex = 2
         Me.OffRadioButton.TabStop = True
         Me.OffRadioButton.Text = "Off"
@@ -245,7 +246,7 @@ Partial Class HVACForm
         Me.CoolRadioButton.Enabled = False
         Me.CoolRadioButton.Location = New System.Drawing.Point(6, 41)
         Me.CoolRadioButton.Name = "CoolRadioButton"
-        Me.CoolRadioButton.Size = New System.Drawing.Size(66, 17)
+        Me.CoolRadioButton.Size = New System.Drawing.Size(82, 23)
         Me.CoolRadioButton.TabIndex = 1
         Me.CoolRadioButton.TabStop = True
         Me.CoolRadioButton.Text = "Cooling"
@@ -257,7 +258,7 @@ Partial Class HVACForm
         Me.HeatRadioButton.Enabled = False
         Me.HeatRadioButton.Location = New System.Drawing.Point(6, 18)
         Me.HeatRadioButton.Name = "HeatRadioButton"
-        Me.HeatRadioButton.Size = New System.Drawing.Size(66, 17)
+        Me.HeatRadioButton.Size = New System.Drawing.Size(83, 23)
         Me.HeatRadioButton.TabIndex = 0
         Me.HeatRadioButton.TabStop = True
         Me.HeatRadioButton.Text = "Heating"
@@ -269,7 +270,7 @@ Partial Class HVACForm
         Me.ModeLabel.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.ModeLabel.Location = New System.Drawing.Point(760, 51)
         Me.ModeLabel.Name = "ModeLabel"
-        Me.ModeLabel.Size = New System.Drawing.Size(54, 21)
+        Me.ModeLabel.Size = New System.Drawing.Size(66, 28)
         Me.ModeLabel.TabIndex = 28
         Me.ModeLabel.Text = "Mode"
         '
@@ -279,7 +280,7 @@ Partial Class HVACForm
         Me.FanLabel.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.FanLabel.Location = New System.Drawing.Point(760, 175)
         Me.FanLabel.Name = "FanLabel"
-        Me.FanLabel.Size = New System.Drawing.Size(37, 21)
+        Me.FanLabel.Size = New System.Drawing.Size(44, 28)
         Me.FanLabel.TabIndex = 29
         Me.FanLabel.Text = "Fan"
         '
@@ -299,7 +300,7 @@ Partial Class HVACForm
         Me.AutoRadioButton.Enabled = False
         Me.AutoRadioButton.Location = New System.Drawing.Point(6, 41)
         Me.AutoRadioButton.Name = "AutoRadioButton"
-        Me.AutoRadioButton.Size = New System.Drawing.Size(51, 17)
+        Me.AutoRadioButton.Size = New System.Drawing.Size(62, 23)
         Me.AutoRadioButton.TabIndex = 1
         Me.AutoRadioButton.TabStop = True
         Me.AutoRadioButton.Text = "Auto"
@@ -311,7 +312,7 @@ Partial Class HVACForm
         Me.OnRadioButton.Enabled = False
         Me.OnRadioButton.Location = New System.Drawing.Point(3, 18)
         Me.OnRadioButton.Name = "OnRadioButton"
-        Me.OnRadioButton.Size = New System.Drawing.Size(40, 17)
+        Me.OnRadioButton.Size = New System.Drawing.Size(49, 23)
         Me.OnRadioButton.TabIndex = 0
         Me.OnRadioButton.TabStop = True
         Me.OnRadioButton.Text = "On"
@@ -328,10 +329,11 @@ Partial Class HVACForm
         '
         'MenuStrip1
         '
+        Me.MenuStrip1.ImageScalingSize = New System.Drawing.Size(20, 20)
         Me.MenuStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveSettingsToolStripMenu, Me.ExitToolStripMenu})
         Me.MenuStrip1.Location = New System.Drawing.Point(0, 0)
         Me.MenuStrip1.Name = "MenuStrip1"
-        Me.MenuStrip1.Size = New System.Drawing.Size(933, 24)
+        Me.MenuStrip1.Size = New System.Drawing.Size(933, 28)
         Me.MenuStrip1.TabIndex = 32
         Me.MenuStrip1.Text = "MenuStrip1"
         '
@@ -339,26 +341,26 @@ Partial Class HVACForm
         '
         Me.SaveSettingsToolStripMenu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveSettingsToolStripMenuItem})
         Me.SaveSettingsToolStripMenu.Name = "SaveSettingsToolStripMenu"
-        Me.SaveSettingsToolStripMenu.Size = New System.Drawing.Size(88, 20)
+        Me.SaveSettingsToolStripMenu.Size = New System.Drawing.Size(111, 24)
         Me.SaveSettingsToolStripMenu.Text = "Save Settings"
         '
         'SaveSettingsToolStripMenuItem
         '
         Me.SaveSettingsToolStripMenuItem.Name = "SaveSettingsToolStripMenuItem"
-        Me.SaveSettingsToolStripMenuItem.Size = New System.Drawing.Size(143, 22)
+        Me.SaveSettingsToolStripMenuItem.Size = New System.Drawing.Size(180, 26)
         Me.SaveSettingsToolStripMenuItem.Text = "Save Settings"
         '
         'ExitToolStripMenu
         '
         Me.ExitToolStripMenu.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ExitToolStripMenuItem})
         Me.ExitToolStripMenu.Name = "ExitToolStripMenu"
-        Me.ExitToolStripMenu.Size = New System.Drawing.Size(37, 20)
+        Me.ExitToolStripMenu.Size = New System.Drawing.Size(47, 24)
         Me.ExitToolStripMenu.Text = "Exit"
         '
         'ExitToolStripMenuItem
         '
         Me.ExitToolStripMenuItem.Name = "ExitToolStripMenuItem"
-        Me.ExitToolStripMenuItem.Size = New System.Drawing.Size(92, 22)
+        Me.ExitToolStripMenuItem.Size = New System.Drawing.Size(116, 26)
         Me.ExitToolStripMenuItem.Text = "Exit"
         '
         'SendTimer
@@ -374,11 +376,11 @@ Partial Class HVACForm
         '
         'TwoMinuteTimer
         '
-        Me.TwoMinuteTimer.Interval = 600
+        Me.TwoMinuteTimer.Interval = 120000
         '
         'HVACForm
         '
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 13.0!)
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(8.0!, 19.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.BackColor = System.Drawing.SystemColors.Control
         Me.ClientSize = New System.Drawing.Size(933, 450)

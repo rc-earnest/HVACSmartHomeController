@@ -46,6 +46,9 @@ Public Class HVACForm
     Private ReadOnly faultLogLock As New Object()
     Private fanOff As Boolean = False
 
+    Private lastFanToggle As DateTime = DateTime.MinValue
+    Private Const FanToggleLockMs As Integer = 2000 ' 2 seconds debounce for fan toggle
+
     Sub Connect()
         ' Get available ports
         ports = ComPort.GetPortNames()
@@ -380,15 +383,14 @@ Public Class HVACForm
                AndAlso Decimal.TryParse(machineText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, machineVal) Then
 
                 If Not disable Then
-                    ' If machine is well below low setpoint -> heat
-                    If machineVal <= (lowSetpoint - 2D) Then
+                    ' Use room temperature for decisions (room is what needs heating/cooling).
+                    ' If room is well below low setpoint -> heat
+                    If roomVal <= (lowSetpoint - 2D) Then
                         If Not heatEnable Then
                             heatEnable = True
                             coolEnable = False
                             fanEnabled = True
-                            ' set fan bit and (device-specific) heat bits as prior code does
                             outputStatus = CByte(outputStatus Or CType(&H8, Byte))
-                            ' (ensure any cool bit cleared)
                             outputStatus = CByte(outputStatus And CType(&HFD, Byte))
                             Dim dataOn(1) As Byte
                             dataOn(0) = &H20
@@ -399,21 +401,21 @@ Public Class HVACForm
                                 SendTimer.Enabled = False
                                 OnPortDisconnected("Error sending data: " & ex.Message)
                             End Try
-                            Dim msgOn As String = $"Auto: Heating enabled (machine {machineVal:F1}°F <= low setpoint -2 ({lowSetpoint - 2D:F1}°F))"
+                            Dim msgOn As String = $"Auto: Heating enabled (room {roomVal:F1}°F <= low setpoint -2 ({lowSetpoint - 2D:F1}°F))"
                             FaultToolStripStatusLabel.Text = msgOn
                             LogFault(msgOn)
                             FiveSecondTimer.Enabled = True
-                            ' keep fan running while heat active (no 5s action)
+                            override = False
+                            ' update UI
+                            HeatRadioButton.Checked = True
                         End If
-                        ' If machine is well above high setpoint -> cool
-                    ElseIf machineVal >= (highSetpoint + 2D) Then
+                        ' If room is well above high setpoint -> cool
+                    ElseIf roomVal >= (highSetpoint + 2D) Then
                         If Not coolEnable Then
                             coolEnable = True
                             heatEnable = False
                             fanEnabled = True
-                            ' set fan bit and (device-specific) cool bits as prior code does
                             outputStatus = CByte(outputStatus Or CType(&H8, Byte))
-                            ' (ensure any heat bit cleared)
                             outputStatus = CByte(outputStatus And CType(&HFB, Byte))
                             Dim dataOn(1) As Byte
                             dataOn(0) = &H20
@@ -424,37 +426,44 @@ Public Class HVACForm
                                 SendTimer.Enabled = False
                                 OnPortDisconnected("Error sending data: " & ex.Message)
                             End Try
-                            Dim msgOn As String = $"Auto: Cooling enabled (machine {machineVal:F1}°F >= high setpoint +2 ({highSetpoint + 2D:F1}°F))"
+                            Dim msgOn As String = $"Auto: Cooling enabled (room {roomVal:F1}°F >= high setpoint +2 ({highSetpoint + 2D:F1}°F))"
                             FaultToolStripStatusLabel.Text = msgOn
                             LogFault(msgOn)
                             FiveSecondTimer.Enabled = True
+                            override = False
+                            ' update UI
+                            CoolRadioButton.Checked = True
                         End If
                     Else
-                        ' Machine is within the user-set bounds [lowSetpoint .. highSetpoint]
+                        ' Room is within the user-set bounds [lowSetpoint .. highSetpoint]
                         ' If either heating or cooling is running, turn them off and leave fan on for 5 seconds
-                        If heatEnable Or coolEnable And override = False Then
-                            heatEnable = False
-                            coolEnable = False
-                            fanEnabled = True
-                            ' set fan bit, clear heat/cool bits
-                            outputStatus = CByte(outputStatus Or CType(&H8, Byte)) ' set fan
-                            outputStatus = CByte(outputStatus And CType(&HFB, Byte)) ' clear heat
-                            outputStatus = CByte(outputStatus And CType(&HFD, Byte)) ' clear cool
-                            Dim dataOff(1) As Byte
-                            dataOff(0) = &H20
-                            dataOff(1) = outputStatus
-                            Try
-                                ComPort.Write(dataOff, 0, 2)
-                            Catch ex As Exception
-                                SendTimer.Enabled = False
-                                OnPortDisconnected("Error sending data: " & ex.Message)
-                            End Try
-                            Dim msgOff As String = $"Auto: Heating/Cooling turned off (machine {machineVal:F1}°F within setpoints {lowSetpoint:F1}-{highSetpoint:F1}); fan on 5s"
-                            FaultToolStripStatusLabel.Text = msgOff
-                            LogFault(msgOff)
-                            ' trigger fan-off sequence
-                            FiveSecondTimer.Enabled = True
-                            fanOff = True
+                        If override = False Then
+                            If heatEnable Or coolEnable Then
+
+                                heatEnable = False
+                                coolEnable = False
+                                fanEnabled = True
+                                outputStatus = CByte(outputStatus Or CType(&H8, Byte)) ' set fan
+                                outputStatus = CByte(outputStatus And CType(&HFB, Byte)) ' clear heat
+                                outputStatus = CByte(outputStatus And CType(&HFD, Byte)) ' clear cool
+                                Dim dataOff(1) As Byte
+                                dataOff(0) = &H20
+                                dataOff(1) = outputStatus
+                                Try
+                                    ComPort.Write(dataOff, 0, 2)
+                                Catch ex As Exception
+                                    SendTimer.Enabled = False
+                                    OnPortDisconnected("Error sending data: " & ex.Message)
+                                End Try
+                                Dim msgOff As String = $"Auto: Heating/Cooling turned off (room {roomVal:F1}°F within setpoints {lowSetpoint:F1}-{highSetpoint:F1}); fan on 5s"
+                                FaultToolStripStatusLabel.Text = msgOff
+                                LogFault(msgOff)
+                                ' trigger fan-off sequence
+                                FiveSecondTimer.Enabled = True
+                                fanOff = True
+                                ' update UI to Off while fan runs
+                                OffRadioButton.Checked = True
+                            End If
                         End If
                     End If
                 End If
@@ -557,25 +566,71 @@ Public Class HVACForm
             OnPortDisconnected("Error sending data: " & ex.Message)
         End Try
         FiveSecondTimer.Enabled = True
+        ' update UI
     End Sub
 
     Sub DigitalInput3()
         If disable = True Then
             Return
         End If
-        fanOnlyMode = True
-        fanEnabled = True
-        override = True
+
+        Dim now As DateTime = DateTime.Now
+        ' Ignore toggles that happen within the debounce window
+        If (now - lastFanToggle).TotalMilliseconds < FanToggleLockMs Then
+            Return
+        End If
+
+        ' Record the toggle time immediately to prevent re-entrant toggles
+        lastFanToggle = now
+
         Dim data(1) As Byte
-        outputStatus = (outputStatus Or CType(&H8, Byte))
-        data(0) = &H20
-        data(1) = outputStatus
-        Try
-            ComPort.Write(data, 0, 2)
-        Catch ex As Exception
-            SendTimer.Enabled = False
-            OnPortDisconnected("Error sending data: " & ex.Message)
-        End Try
+
+        ' Toggle fan-only mode: second call turns fan off
+        If fanOnlyMode Then
+            ' Turn fan-only mode off
+            fanOnlyMode = False
+            fanEnabled = False
+            override = False
+            ' clear fan bit (bit 3 / 0x08)
+            outputStatus = CByte(outputStatus And CType(&HF7, Byte))
+            data(0) = &H20
+            data(1) = outputStatus
+            Try
+                ComPort.Write(data, 0, 2)
+            Catch ex As Exception
+                SendTimer.Enabled = False
+                OnPortDisconnected("Error sending data: " & ex.Message)
+            End Try
+
+            ' Update UI: if heat or cool still active show them, otherwise auto
+            If heatEnable Then
+                HeatRadioButton.Checked = True
+            ElseIf coolEnable Then
+                CoolRadioButton.Checked = True
+            Else
+                AutoRadioButton.Checked = True
+            End If
+            LogFault("Fan-only mode turned off by digital input")
+        Else
+            ' Turn fan-only mode on
+            fanOnlyMode = True
+            fanEnabled = True
+            override = True
+            outputStatus = (outputStatus Or CType(&H8, Byte))
+            data(0) = &H20
+            data(1) = outputStatus
+            Try
+                ComPort.Write(data, 0, 2)
+            Catch ex As Exception
+                SendTimer.Enabled = False
+                OnPortDisconnected("Error sending data: " & ex.Message)
+            End Try
+
+            ' Update UI to fan mode (use your fan radio control name)
+            OnRadioButton.Checked = True
+            LogFault("Fan-only mode enabled by digital input")
+            FiveSecondTimer.Enabled = True
+        End If
     End Sub
 
     Sub DigitalInput4()
@@ -662,6 +717,8 @@ Public Class HVACForm
                     SendTimer.Enabled = False
                     OnPortDisconnected("Error sending data: " & ex.Message)
                 End Try
+                ' ensure UI reflects heating
+                HeatRadioButton.Checked = True
             End If
 
             ' If cooling still on, send cool output
@@ -677,6 +734,8 @@ Public Class HVACForm
                     SendTimer.Enabled = False
                     OnPortDisconnected("Error sending data: " & ex.Message)
                 End Try
+                ' ensure UI reflects cooling
+                CoolRadioButton.Checked = True
             End If
 
             ' If we're in the "fan on for 5 seconds" phase, clear the fan bit now
@@ -695,6 +754,15 @@ Public Class HVACForm
                     OnPortDisconnected("Error sending data: " & ex.Message)
                 End Try
                 LogFault("Auto: Fan turned off after 5s")
+
+                ' Update UI: if heat/cool still active show them, otherwise auto
+                If heatEnable Then
+                    HeatRadioButton.Checked = True
+                ElseIf coolEnable Then
+                    CoolRadioButton.Checked = True
+                Else
+                    AutoRadioButton.Checked = True
+                End If
             End If
         Catch
             ' Keep timer stable
